@@ -5,6 +5,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	kmsService "github.com/aws/aws-sdk-go/service/kms"
 	homedir "github.com/mitchellh/go-homedir"
@@ -89,6 +91,7 @@ func (k *KMSsecret) Validate() error {
 }
 
 func (k *KMSsecret) getCredentials() *awsCredentials.Credentials {
+	var metadataClient = ec2metadata.New(session.New(aws.NewConfig()))
 	providers := []awsCredentials.Provider{
 		&awsCredentials.StaticProvider{Value: awsCredentials.Value{
 			AccessKeyID:     k.AccessKey,
@@ -98,6 +101,9 @@ func (k *KMSsecret) getCredentials() *awsCredentials.Credentials {
 		&awsCredentials.SharedCredentialsProvider{
 			Filename: k.CredentialsFilename,
 			Profile:  k.Profile,
+		},
+		&ec2rolecreds.EC2RoleProvider{
+			Client: metadataClient,
 		},
 	}
 	return awsCredentials.NewChainCredentials(providers)
